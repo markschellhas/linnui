@@ -39,9 +39,13 @@ func run(w *app.Window) error {
 				Body(
 					Column([]Widget{
 						Text("Welcome to LinnUI", Style(H4)),
+						SizedBox(Height(25)),
 						Text("A Flutter-like experience for Go"),
 						Row([]Widget{
 							Button("Hello LinnUI", Variant(Filled)),
+							SizedBox(
+								Width(50),
+							),
 							Column([]Widget{
 								Text("Some more:"),
 								Button("Hello Mark", Variant(Filled)),
