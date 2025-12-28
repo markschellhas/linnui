@@ -14,12 +14,13 @@ import (
 func main() {
 	go func() {
 		w := new(app.Window)
-		w.Option(app.Title("LinnUI Reactive Counter"))
+		w.Option(app.Title("LinnUI State Examples"))
 
 		// Create reactive state - binds to window for auto-invalidation
 		count := NewState(0).Bind(w)
+		inputText := NewState("").Bind(w)
 
-		if err := run(w, count); err != nil {
+		if err := run(w, count, inputText); err != nil {
 			log.Fatal(err)
 		}
 		os.Exit(0)
@@ -27,7 +28,7 @@ func main() {
 	app.Main()
 }
 
-func run(w *app.Window, count *State[int]) error {
+func run(w *app.Window, count *State[int], inputText *State[string]) error {
 	var ops op.Ops
 	th := Light
 
@@ -39,27 +40,45 @@ func run(w *app.Window, count *State[int]) error {
 			gtx := app.NewContext(&ops, e)
 
 			Scaffold(
-				AppBar(TitleBar("Reactive Counter")),
+				AppBar(TitleBar("LinnUI State Management")),
 				Body(
 					Column([]any{
-						Spacer(),
+						// Text input section
+						Text("Type something:", Style(H5)),
+						SizedBox(Height(8)),
+						TextField(
+							TextFieldID("name_input"),
+							Hint("Enter your name..."),
+							OnChange(func(s string) {
+								inputText.Set(s)
+							}),
+						),
+						SizedBox(Height(8)),
+						Text("You typed: "+inputText.Get(), Style(BodyText)),
+
+						SizedBox(Height(32)),
+
+						// Counter section
 						Center(
 							Column([]any{
 								Text("Count: "+strconv.Itoa(count.Get()), Style(H1)),
 								SizedBox(Height(32)),
 								Row([]any{
 									Button("- Decrement",
+										ButtonID("decrement"),
 										OnClick(func() { count.Set(count.Get() - 1) }),
 										Variant(Outlined),
 									),
 									SizedBox(Width(16)),
 									Button("+ Increment",
+										ButtonID("increment"),
 										OnClick(func() { count.Set(count.Get() + 1) }),
 										Variant(Filled),
 									),
 								}, RowSpacing(0)),
 								SizedBox(Height(16)),
 								Button("Reset",
+									ButtonID("reset"),
 									OnClick(func() { count.Set(0) }),
 									Variant(TextButton),
 								),

@@ -1,19 +1,43 @@
 package ui
 
 import (
+	"image"
+
 	"gioui.org/layout"
+	"gioui.org/op"
 )
 
 // Center centers its child within the available space
 // Usage: Center(child)
 func Center(child Widget) Widget {
 	return func(gtx layout.Context, th *Theme) layout.Dimensions {
-		return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			if child != nil {
-				return child(gtx, th)
-			}
-			return layout.Dimensions{}
-		})
+		// First, we need to measure the child to know its size
+		macro := op.Record(gtx.Ops)
+		childDims := layout.Dimensions{}
+		if child != nil {
+			childDims = child(gtx, th)
+		}
+		call := macro.Stop()
+
+		// Calculate centered position
+		availableSize := gtx.Constraints.Max
+		offsetX := (availableSize.X - childDims.Size.X) / 2
+		offsetY := (availableSize.Y - childDims.Size.Y) / 2
+
+		if offsetX < 0 {
+			offsetX = 0
+		}
+		if offsetY < 0 {
+			offsetY = 0
+		}
+
+		// Apply offset and draw
+		defer op.Offset(image.Pt(offsetX, offsetY)).Push(gtx.Ops).Pop()
+		call.Add(gtx.Ops)
+
+		return layout.Dimensions{
+			Size: availableSize,
+		}
 	}
 }
 
@@ -21,36 +45,51 @@ func Center(child Widget) Widget {
 // Usage: Align(TopLeft, child)
 func Align(alignment Alignment, child Widget) Widget {
 	return func(gtx layout.Context, th *Theme) layout.Dimensions {
-		var dir layout.Direction
+		// Measure the child first
+		macro := op.Record(gtx.Ops)
+		childDims := layout.Dimensions{}
+		if child != nil {
+			childDims = child(gtx, th)
+		}
+		call := macro.Stop()
+
+		availableSize := gtx.Constraints.Max
+		var offsetX, offsetY int
+
+		// Calculate X offset
 		switch alignment {
-		case TopLeft:
-			dir = layout.NW
-		case TopCenter:
-			dir = layout.N
-		case TopRight:
-			dir = layout.NE
-		case CenterLeft:
-			dir = layout.W
-		case CenterCenter:
-			dir = layout.Center
-		case CenterRight:
-			dir = layout.E
-		case BottomLeft:
-			dir = layout.SW
-		case BottomCenter:
-			dir = layout.S
-		case BottomRight:
-			dir = layout.SE
-		default:
-			dir = layout.Center
+		case TopLeft, CenterLeft, BottomLeft:
+			offsetX = 0
+		case TopCenter, CenterCenter, BottomCenter:
+			offsetX = (availableSize.X - childDims.Size.X) / 2
+		case TopRight, CenterRight, BottomRight:
+			offsetX = availableSize.X - childDims.Size.X
 		}
 
-		return dir.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			if child != nil {
-				return child(gtx, th)
-			}
-			return layout.Dimensions{}
-		})
+		// Calculate Y offset
+		switch alignment {
+		case TopLeft, TopCenter, TopRight:
+			offsetY = 0
+		case CenterLeft, CenterCenter, CenterRight:
+			offsetY = (availableSize.Y - childDims.Size.Y) / 2
+		case BottomLeft, BottomCenter, BottomRight:
+			offsetY = availableSize.Y - childDims.Size.Y
+		}
+
+		if offsetX < 0 {
+			offsetX = 0
+		}
+		if offsetY < 0 {
+			offsetY = 0
+		}
+
+		// Apply offset and draw
+		defer op.Offset(image.Pt(offsetX, offsetY)).Push(gtx.Ops).Pop()
+		call.Add(gtx.Ops)
+
+		return layout.Dimensions{
+			Size: availableSize,
+		}
 	}
 }
 
