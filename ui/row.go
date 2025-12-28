@@ -22,11 +22,12 @@ func RowMainAxis(align MainAxisAlignment) RowOption {
 type rowModel struct {
 	spacing   unit.Dp
 	mainAlign MainAxisAlignment
-	children  []Widget
+	children  []any // Can be Widget or FlexWidget
 }
 
 // Row creates a horizontal layout
-func Row(children []Widget, opts ...RowOption) Widget {
+// Children can be Widget or FlexWidget (from Spacer/Expanded)
+func Row(children []any, opts ...RowOption) Widget {
 	r := &rowModel{
 		spacing:   unit.Dp(8),
 		mainAlign: MainAxisStart,
@@ -39,13 +40,24 @@ func Row(children []Widget, opts ...RowOption) Widget {
 	return func(gtx layout.Context, th *Theme) layout.Dimensions {
 		flexChildren := make([]layout.FlexChild, 0, len(r.children)*2)
 		for i, child := range r.children {
-			if i > 0 {
+			if i > 0 && r.spacing > 0 {
 				flexChildren = append(flexChildren, layout.Rigid(layout.Spacer{Width: r.spacing}.Layout))
 			}
-			w := child
-			flexChildren = append(flexChildren, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return w(gtx, th)
-			}))
+
+			switch w := child.(type) {
+			case FlexWidget:
+				// Flexible child (Spacer or Expanded)
+				widget := w.Widget
+				flexChildren = append(flexChildren, layout.Flexed(w.Flex, func(gtx layout.Context) layout.Dimensions {
+					return widget(gtx, th)
+				}))
+			case Widget:
+				// Regular rigid child
+				widget := w
+				flexChildren = append(flexChildren, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return widget(gtx, th)
+				}))
+			}
 		}
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx, flexChildren...)
 	}

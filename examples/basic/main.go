@@ -33,25 +33,42 @@ func run(w *app.Window) error {
 		case app.FrameEvent:
 			gtx := app.NewContext(&ops, e)
 
-			// The entire UI in one clean Scaffold - Flutter-like!
 			Scaffold(
 				AppBar(TitleBar("LinnUI Simple")),
 				Body(
-					Column([]Widget{
-						Text("Welcome to LinnUI", Style(H4)),
-						SizedBox(Height(25)),
-						Text("A Flutter-like experience for Go"),
-						Row([]Widget{
-							Button("Hello LinnUI", Variant(Filled)),
-							SizedBox(
-								Width(50),
+					Column([]any{
+						Text("Welcome to LinnUI", Style(H3)),
+						SizedBox(Height(20)),
+						Margin(
+							InsetsAll(50),
+							Container(
+								Padding(InsetsAll(50),
+									Column([]any{
+										Text("Card content", Style(H4)),
+										SizedBox(Height(8)),
+										Text("This is a decorated container"),
+									}),
+								),
+								Background(White),
+								BorderRadius(16),
+								Border(BorderStyle{Width: 1, Color: Black}),
+								Shadow(8),
 							),
-							Column([]Widget{
-								Text("Some more:"),
-								Button("Hello Mark", Variant(Filled)),
+						),
+						SizedBox(Height(20)),
+						Padding(
+							Insets{Left: 20, Right: 20},
+							Row([]any{
+								Button("Left", Variant(Filled)),
+								Spacer(), // Fills space between buttons
+								Button("Right", Variant(Outlined)),
 							}),
-						}),
-					}, Spacing(30)),
+						),
+						Spacer(), // Pushes content below to bottom
+						Center(
+							Text("Footer at bottom"),
+						),
+					}, Spacing(0)),
 				),
 			)(gtx, &th)
 

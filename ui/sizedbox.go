@@ -20,26 +20,27 @@ func Height(dp float32) SizedBoxOption {
 	return func(s *sizedBoxModel) { s.height = dp; s.hasHeight = true }
 }
 
-// Child sets the child widget inside the SizedBox
-func Child(w Widget) SizedBoxOption {
-	return func(s *sizedBoxModel) { s.child = w }
-}
-
 // sizedBoxModel holds SizedBox configuration (internal)
 type sizedBoxModel struct {
 	width     float32
 	height    float32
 	hasWidth  bool
 	hasHeight bool
-	child     Widget
 }
 
 // SizedBox creates a box with fixed dimensions
-// Use Width(), Height(), and Child() options to configure
-func SizedBox(opts ...SizedBoxOption) Widget {
+// Usage: SizedBox(Width(100), Height(50), child) or SizedBox(Height(20)) for spacing
+func SizedBox(opts ...any) Widget {
 	s := &sizedBoxModel{}
+	var child Widget
+
 	for _, opt := range opts {
-		opt(s)
+		switch v := opt.(type) {
+		case SizedBoxOption:
+			v(s)
+		case Widget:
+			child = v
+		}
 	}
 
 	return func(gtx layout.Context, th *Theme) layout.Dimensions {
@@ -63,8 +64,8 @@ func SizedBox(opts ...SizedBoxOption) Widget {
 			Max: image.Pt(maxW, maxH),
 		}
 
-		if s.child != nil {
-			return s.child(childGtx, th)
+		if child != nil {
+			return child(childGtx, th)
 		}
 
 		// No child - just return the sized space
