@@ -23,7 +23,7 @@ import (
 )
 
 func main() {
-	// Reactive counter state
+	// 👉 LinnUI reactive state for counter 
 	count := ui.NewState(0)
 
 	go func() {
@@ -34,6 +34,25 @@ func main() {
 		// UI loop...
 		app.Main()
 	}()
+}
+// UI loop:
+func run(w *app.Window) error {
+	var ops op.Ops
+	th := Light
+
+	for {
+		switch e := w.Event().(type) {
+		case app.DestroyEvent:
+			return e.Err
+		case app.FrameEvent:
+			gtx := app.NewContext(&ops, e)
+      
+      // 👉 LinnUI Center & Text component
+			Center(Text("Oh, hi Mark"))(gtx, &th)
+      
+			e.Frame(gtx.Ops)
+		}
+	}
 }
 ```
 
