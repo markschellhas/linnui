@@ -61,7 +61,7 @@ func run(w *app.Window, count *State[int], inputText *State[string]) error {
 						// Counter section
 						Center(
 							Column([]any{
-								Text("Count: "+strconv.Itoa(count.Get()), Style(H1)),
+								Text("Count: "+strconv.Itoa(count.Get()), Style(H5)),
 								SizedBox(Height(32)),
 								Row([]any{
 									Button("- Decrement",

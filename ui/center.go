@@ -11,16 +11,23 @@ import (
 // Usage: Center(child)
 func Center(child Widget) Widget {
 	return func(gtx layout.Context, th *Theme) layout.Dimensions {
-		// First, we need to measure the child to know its size
+		// use the constrained size, this is the actual available space
+		// gtx.Constraints.Max gives us the maximum space we can use
+		availableSize := gtx.Constraints.Constrain(gtx.Constraints.Max)
+
+		// measure the child with relaxed constraints (let it be its natural size)
+		childGtx := gtx
+		childGtx.Constraints.Min = image.Point{}
+		childGtx.Constraints.Max = availableSize
+
 		macro := op.Record(gtx.Ops)
 		childDims := layout.Dimensions{}
 		if child != nil {
-			childDims = child(gtx, th)
+			childDims = child(childGtx, th)
 		}
 		call := macro.Stop()
 
 		// Calculate centered position
-		availableSize := gtx.Constraints.Max
 		offsetX := (availableSize.X - childDims.Size.X) / 2
 		offsetY := (availableSize.Y - childDims.Size.Y) / 2
 
@@ -32,8 +39,9 @@ func Center(child Widget) Widget {
 		}
 
 		// Apply offset and draw
-		defer op.Offset(image.Pt(offsetX, offsetY)).Push(gtx.Ops).Pop()
+		stack := op.Offset(image.Pt(offsetX, offsetY)).Push(gtx.Ops)
 		call.Add(gtx.Ops)
+		stack.Pop()
 
 		return layout.Dimensions{
 			Size: availableSize,
@@ -45,15 +53,21 @@ func Center(child Widget) Widget {
 // Usage: Align(TopLeft, child)
 func Align(alignment Alignment, child Widget) Widget {
 	return func(gtx layout.Context, th *Theme) layout.Dimensions {
-		// Measure the child first
+		// Take up all available space
+		availableSize := gtx.Constraints.Max
+
+		// Measure the child with relaxed constraints
+		childGtx := gtx
+		childGtx.Constraints.Min = image.Point{}
+		childGtx.Constraints.Max = availableSize
+
 		macro := op.Record(gtx.Ops)
 		childDims := layout.Dimensions{}
 		if child != nil {
-			childDims = child(gtx, th)
+			childDims = child(childGtx, th)
 		}
 		call := macro.Stop()
 
-		availableSize := gtx.Constraints.Max
 		var offsetX, offsetY int
 
 		// Calculate X offset
@@ -84,8 +98,9 @@ func Align(alignment Alignment, child Widget) Widget {
 		}
 
 		// Apply offset and draw
-		defer op.Offset(image.Pt(offsetX, offsetY)).Push(gtx.Ops).Pop()
+		stack := op.Offset(image.Pt(offsetX, offsetY)).Push(gtx.Ops)
 		call.Add(gtx.Ops)
+		stack.Pop()
 
 		return layout.Dimensions{
 			Size: availableSize,

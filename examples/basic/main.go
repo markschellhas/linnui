@@ -38,6 +38,16 @@ func run(w *app.Window) error {
 				Body(
 					Column([]any{
 						Text("Welcome to LinnUI", Style(H3)),
+						Row([]any{
+							Container(
+								Column([]any{
+									Padding(InsetsAll(30),
+										Text("Hi"),
+									),
+								}),
+								Background(Gray100),
+							),
+						}),
 						SizedBox(Height(20)),
 						Margin(
 							InsetsAll(50),
