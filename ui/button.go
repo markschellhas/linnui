@@ -1,10 +1,13 @@
 package ui
 
 import (
+	"image"
 	"image/color"
 	"sync"
 
 	"gioui.org/layout"
+	"gioui.org/op/clip"
+	"gioui.org/op/paint"
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
@@ -102,6 +105,28 @@ func Button(label string, opts ...ButtonOption) Widget {
 			mat.Background = color.NRGBA{A: 0} // Transparent
 			mat.Color = th.Palette.Primary
 			mat.CornerRadius = unit.Dp(12)
+			// Draw button first, then add outline
+			return layout.Stack{}.Layout(gtx,
+				layout.Stacked(func(gtx layout.Context) layout.Dimensions {
+					return mat.Layout(gtx)
+				}),
+				layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+					size := gtx.Constraints.Min
+					radius := gtx.Dp(unit.Dp(12))
+					borderWidth := gtx.Dp(unit.Dp(1))
+
+					// Draw outline using stroke
+					rect := image.Rect(0, 0, size.X, size.Y)
+					outline := clip.Stroke{
+						Path:  clip.UniformRRect(rect, radius).Path(gtx.Ops),
+						Width: float32(borderWidth),
+					}.Op().Push(gtx.Ops)
+					paint.Fill(gtx.Ops, th.Palette.Primary)
+					outline.Pop()
+
+					return layout.Dimensions{Size: size}
+				}),
+			)
 		case TextButton:
 			mat.Background = color.NRGBA{A: 0} // Transparent
 			mat.Color = th.Palette.Primary
