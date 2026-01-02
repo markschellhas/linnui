@@ -32,7 +32,7 @@ func run(w *app.Window) error {
 		case app.FrameEvent:
 			gtx := app.NewContext(&ops, e)
 
-			Center(Text("Oh, hi Mark"))(gtx, &th)
+			Center(Text("Oh, hi Mark", Size(6)))(gtx, &th)
 			e.Frame(gtx.Ops)
 		}
 	}
