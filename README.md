@@ -58,10 +58,15 @@ func run(w *app.Window) error {
 
 (See `examples/counter` for the full reactive counter demo.)
 
+## Requirements
+
+- **Go 1.26+** (see `go.mod`)
+- Linux desktop builds also need Gio system libraries (e.g. `libxkbcommon-dev`, `libwayland-dev`, `libvulkan-dev`, `libegl1-mesa-dev`)
+
 ## Installation
 
 ```bash
-go get github.com/markschellhas/linnui/ui
+go get github.com/markschellhas/linnui/ui@v0.3.1
 ```
 
 ## Why LinnUI?
@@ -70,7 +75,9 @@ Go developers deserve modern, joyful UI tooling without compromises. LinnUI fill
 
 ## Status
 
-Early development (v0.1-alpha) — API subject to change. Contributions welcome!
+Early development (v0.3.1) — API subject to change. Contributions welcome!
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ---
 
