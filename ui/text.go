@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"image/color"
+
 	"gioui.org/layout"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
@@ -34,11 +36,21 @@ func Style(s TextStyle) TextOption {
 	return func(t *textModel) { t.style = s }
 }
 
+// TextColor overrides the theme's semantic text color.
+func TextColor(c color.NRGBA) TextOption {
+	return func(t *textModel) {
+		t.color = c
+		t.hasColor = true
+	}
+}
+
 // textModel holds text configuration (internal)
 type textModel struct {
-	content string
-	style   TextStyle
-	size    unit.Sp // custom size overrides style
+	content  string
+	style    TextStyle
+	size     unit.Sp // custom size overrides style
+	color    color.NRGBA
+	hasColor bool
 }
 
 // Text creates a text display widget
@@ -81,6 +93,15 @@ func Text(content string, opts ...TextOption) Widget {
 		if t.size > 0 {
 			label.TextSize = t.size
 		}
+
+		label.Color = th.Palette.OnSurface
+		if t.style == Caption || t.style == Overline {
+			label.Color = th.Palette.OnSurfaceVariant
+		}
+		if t.hasColor {
+			label.Color = t.color
+		}
+		label.SelectionColor = th.Palette.PrimaryContainer
 
 		return label.Layout(gtx)
 	}

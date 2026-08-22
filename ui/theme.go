@@ -37,12 +37,26 @@ var (
 	Orange = color.NRGBA{R: 255, G: 152, B: 0, A: 255}
 )
 
-// Palette defines the color scheme
+// Palette defines semantic colors used by LinnUI components.
 type Palette struct {
-	Primary        color.NRGBA
-	OnPrimary      color.NRGBA
-	SurfaceVariant color.NRGBA
-	Outline        color.NRGBA
+	Primary            color.NRGBA
+	OnPrimary          color.NRGBA
+	PrimaryContainer   color.NRGBA
+	OnPrimaryContainer color.NRGBA
+	Secondary          color.NRGBA
+	OnSecondary        color.NRGBA
+	Background         color.NRGBA
+	OnBackground       color.NRGBA
+	Surface            color.NRGBA
+	OnSurface          color.NRGBA
+	SurfaceVariant     color.NRGBA
+	OnSurfaceVariant   color.NRGBA
+	Error              color.NRGBA
+	OnError            color.NRGBA
+	Outline            color.NRGBA
+	Shadow             color.NRGBA
+	Disabled           color.NRGBA
+	OnDisabled         color.NRGBA
 }
 
 // Theme holds styling information
@@ -51,24 +65,70 @@ type Theme struct {
 	Palette Palette
 }
 
-// Light theme with modern colors
-var Light = Theme{
-	Theme: material.NewTheme(),
-	Palette: Palette{
-		Primary:        color.NRGBA{R: 99, G: 91, B: 255, A: 255}, // Indigo
-		OnPrimary:      color.NRGBA{R: 255, G: 255, B: 255, A: 255},
-		SurfaceVariant: color.NRGBA{R: 240, G: 240, B: 255, A: 255},
-		Outline:        color.NRGBA{R: 150, G: 150, B: 150, A: 255},
-	},
+// ThemeFromPalette creates a Theme and keeps Gio's Material palette in sync
+// with LinnUI's semantic colors.
+func ThemeFromPalette(palette Palette) Theme {
+	materialTheme := material.NewTheme()
+	materialTheme.Palette.Bg = palette.Background
+	materialTheme.Palette.Fg = palette.OnBackground
+	materialTheme.Palette.ContrastBg = palette.Primary
+	materialTheme.Palette.ContrastFg = palette.OnPrimary
+	return Theme{Theme: materialTheme, Palette: palette}
 }
 
-// Dark theme
-var Dark = Theme{
-	Theme: material.NewTheme(),
-	Palette: Palette{
-		Primary:        color.NRGBA{R: 187, G: 134, B: 252, A: 255}, // Purple
-		OnPrimary:      color.NRGBA{R: 0, G: 0, B: 0, A: 255},
-		SurfaceVariant: color.NRGBA{R: 30, G: 30, B: 46, A: 255},
-		Outline:        color.NRGBA{R: 100, G: 100, B: 100, A: 255},
-	},
+// Light is the default light color scheme.
+var Light = ThemeFromPalette(Palette{
+	Primary:            rgb(0x6750A4),
+	OnPrimary:          rgb(0xFFFFFF),
+	PrimaryContainer:   rgb(0xEADDFF),
+	OnPrimaryContainer: rgb(0x21005D),
+	Secondary:          rgb(0x625B71),
+	OnSecondary:        rgb(0xFFFFFF),
+	Background:         rgb(0xFFFBFE),
+	OnBackground:       rgb(0x1C1B1F),
+	Surface:            rgb(0xFFFBFE),
+	OnSurface:          rgb(0x1C1B1F),
+	SurfaceVariant:     rgb(0xE7E0EC),
+	OnSurfaceVariant:   rgb(0x49454F),
+	Error:              rgb(0xB3261E),
+	OnError:            rgb(0xFFFFFF),
+	Outline:            rgb(0x79747E),
+	Shadow:             rgb(0x000000),
+	Disabled:           rgba(0x1C1B1F, 0x1F),
+	OnDisabled:         rgba(0x1C1B1F, 0x61),
+})
+
+// Dark is the default dark color scheme.
+var Dark = ThemeFromPalette(Palette{
+	Primary:            rgb(0xD0BCFF),
+	OnPrimary:          rgb(0x381E72),
+	PrimaryContainer:   rgb(0x4F378B),
+	OnPrimaryContainer: rgb(0xEADDFF),
+	Secondary:          rgb(0xCCC2DC),
+	OnSecondary:        rgb(0x332D41),
+	Background:         rgb(0x1C1B1F),
+	OnBackground:       rgb(0xE6E1E5),
+	Surface:            rgb(0x1C1B1F),
+	OnSurface:          rgb(0xE6E1E5),
+	SurfaceVariant:     rgb(0x49454F),
+	OnSurfaceVariant:   rgb(0xCAC4D0),
+	Error:              rgb(0xF2B8B5),
+	OnError:            rgb(0x601410),
+	Outline:            rgb(0x938F99),
+	Shadow:             rgb(0x000000),
+	Disabled:           rgba(0xE6E1E5, 0x1F),
+	OnDisabled:         rgba(0xE6E1E5, 0x61),
+})
+
+func rgb(hex uint32) color.NRGBA {
+	return rgba(hex, 0xFF)
+}
+
+func rgba(hex uint32, alpha uint8) color.NRGBA {
+	return color.NRGBA{
+		R: uint8(hex >> 16),
+		G: uint8(hex >> 8),
+		B: uint8(hex),
+		A: alpha,
+	}
 }

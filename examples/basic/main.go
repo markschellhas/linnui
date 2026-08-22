@@ -14,7 +14,9 @@ func main() {
 	go func() {
 		w := new(app.Window)
 		w.Option(app.Title("LinnUI Simple Example"))
-		if err := run(w); err != nil {
+		tree := NewTree(w)
+		defer tree.Close()
+		if err := run(w, tree); err != nil {
 			log.Fatal(err)
 		}
 		os.Exit(0)
@@ -22,7 +24,7 @@ func main() {
 	app.Main()
 }
 
-func run(w *app.Window) error {
+func run(w *app.Window, tree *Tree) error {
 	var ops op.Ops
 	th := Light
 
@@ -34,7 +36,7 @@ func run(w *app.Window) error {
 			gtx := app.NewContext(&ops, e)
 
 			Scaffold(
-				AppBar(TitleBar("LinnUI Simple")),
+				TopBar(AppBar("LinnUI Simple")),
 				Body(
 					Column([]any{
 						Text("Welcome to LinnUI", Style(H3)),
@@ -69,9 +71,9 @@ func run(w *app.Window) error {
 						Padding(
 							Insets{Left: 20, Right: 20},
 							Row([]any{
-								Button("Left", Variant(Filled)),
+								tree.Button("Left", Variant(Filled)),
 								Spacer(), // Fills space between buttons
-								Button("Right", Variant(Outlined)),
+								tree.Button("Right", Variant(Outlined)),
 							}),
 						),
 						Spacer(), // Pushes content below to bottom

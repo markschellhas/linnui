@@ -2,21 +2,12 @@ package ui
 
 import (
 	"image"
-	"image/color"
-	"sync"
 
 	"gioui.org/layout"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
-	"gioui.org/widget"
 	"gioui.org/widget/material"
-)
-
-// buttonRegistry stores clickable state by button label
-var (
-	buttonRegistry = make(map[string]*widget.Clickable)
-	buttonMu       sync.Mutex
 )
 
 // ButtonVariant defines the visual style of a button
@@ -48,29 +39,27 @@ func ButtonID(id string) ButtonOption {
 	return func(b *buttonModel) { b.id = id }
 }
 
-// buttonModel holds button state and configuration (internal)
-type buttonModel struct {
-	id      string
-	label   string
-	variant ButtonVariant
-	onClick func()
+// ButtonDisabled controls whether the button can receive input.
+func ButtonDisabled(disabled bool) ButtonOption {
+	return func(b *buttonModel) { b.disabled = disabled }
 }
 
-// getClickable returns a persistent clickable for the given ID
-func getClickable(id string) *widget.Clickable {
-	buttonMu.Lock()
-	defer buttonMu.Unlock()
-
-	if c, ok := buttonRegistry[id]; ok {
-		return c
-	}
-	c := new(widget.Clickable)
-	buttonRegistry[id] = c
-	return c
+// buttonModel holds button state and configuration (internal)
+type buttonModel struct {
+	id       string
+	label    string
+	variant  ButtonVariant
+	onClick  func()
+	disabled bool
 }
 
 // Button creates a clickable button widget
 func Button(label string, opts ...ButtonOption) Widget {
+	return legacyTree.Button(label, opts...)
+}
+
+// Button creates a clickable button whose state belongs to the Tree.
+func (t *Tree) Button(label string, opts ...ButtonOption) Widget {
 	b := &buttonModel{
 		id:      label, // Default ID is the label
 		label:   label,
@@ -81,10 +70,14 @@ func Button(label string, opts ...ButtonOption) Widget {
 	}
 
 	// Get persistent clickable using the ID
-	clickable := getClickable(b.id)
+	clickable := t.clickable(buttonWidget, b.id)
 	onClick := b.onClick // Capture the handler
 
 	return func(gtx layout.Context, th *Theme) layout.Dimensions {
+		if b.disabled {
+			gtx = gtx.Disabled()
+		}
+
 		// Handle clicks
 		for clickable.Clicked(gtx) {
 			if onClick != nil {
@@ -102,7 +95,7 @@ func Button(label string, opts ...ButtonOption) Widget {
 			mat.Color = th.Palette.OnPrimary
 			mat.CornerRadius = unit.Dp(12)
 		case Outlined:
-			mat.Background = color.NRGBA{A: 0} // Transparent
+			mat.Background = Transparent
 			mat.Color = th.Palette.Primary
 			mat.CornerRadius = unit.Dp(12)
 			// Draw button first, then add outline
@@ -121,19 +114,19 @@ func Button(label string, opts ...ButtonOption) Widget {
 						Path:  clip.UniformRRect(rect, radius).Path(gtx.Ops),
 						Width: float32(borderWidth),
 					}.Op().Push(gtx.Ops)
-					paint.Fill(gtx.Ops, th.Palette.Primary)
+					paint.Fill(gtx.Ops, th.Palette.Outline)
 					outline.Pop()
 
 					return layout.Dimensions{Size: size}
 				}),
 			)
 		case TextButton:
-			mat.Background = color.NRGBA{A: 0} // Transparent
+			mat.Background = Transparent
 			mat.Color = th.Palette.Primary
 			mat.CornerRadius = unit.Dp(12)
 		case Elevated:
 			mat.Background = th.Palette.SurfaceVariant
-			mat.Color = th.Palette.Primary
+			mat.Color = th.Palette.OnSurface
 			mat.CornerRadius = unit.Dp(12)
 		}
 

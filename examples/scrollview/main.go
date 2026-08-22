@@ -15,7 +15,9 @@ func main() {
 	go func() {
 		w := new(app.Window)
 		w.Option(app.Title("LinnUI ScrollView Example"))
-		if err := run(w); err != nil {
+		tree := NewTree(w)
+		defer tree.Close()
+		if err := run(w, tree); err != nil {
 			log.Fatal(err)
 		}
 		os.Exit(0)
@@ -23,7 +25,7 @@ func main() {
 	app.Main()
 }
 
-func run(w *app.Window) error {
+func run(w *app.Window, tree *Tree) error {
 	var ops op.Ops
 	th := Light
 
@@ -57,7 +59,7 @@ func run(w *app.Window) error {
 				Container(
 					Column([]any{
 						Text("ScrollView Example", Style(H5)),
-						ScrollView(
+						tree.ScrollView(
 							Column([]any{
 								Text("This is a ScrollView wrapping a Column."),
 								Text("Scroll down to see more content..."),
@@ -83,7 +85,7 @@ func run(w *app.Window) error {
 					Column([]any{
 						Text("ListView Example", Style(H5)),
 						Text("50 items, efficiently rendered:"),
-						ListView(listItems, ScrollID("listview-1")),
+						tree.ListView(listItems, ScrollID("listview-1")),
 					}, Spacing(8)),
 					Background(color.NRGBA{R: 250, G: 250, B: 250, A: 255}),
 					BorderRadius(12),

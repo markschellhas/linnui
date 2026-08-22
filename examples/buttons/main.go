@@ -13,7 +13,9 @@ func main() {
 	go func() {
 		w := new(app.Window)
 		w.Option(app.Title("LinnUI Buttons Example"))
-		if err := run(w); err != nil {
+		tree := NewTree(w)
+		defer tree.Close()
+		if err := run(w, tree); err != nil {
 			log.Fatal(err)
 		}
 		os.Exit(0)
@@ -21,7 +23,7 @@ func main() {
 	app.Main()
 }
 
-func run(w *app.Window) error {
+func run(w *app.Window, tree *Tree) error {
 	var ops op.Ops
 	th := Light
 
@@ -34,17 +36,17 @@ func run(w *app.Window) error {
 
 			Center(
 				Column([]any{
-					Button("Click me!"),
-					Button("Filled Button (Default)", Variant(Filled)),
-					Button("Outlined Button", Variant(Outlined)),
-					Button("Text Button", Variant(TextButton)),
-					Button("Elevated Button", Variant(Elevated)),
-					Button("With OnClick", OnClick(func() {
+					tree.Button("Click me!"),
+					tree.Button("Filled Button (Default)", Variant(Filled)),
+					tree.Button("Outlined Button", Variant(Outlined)),
+					tree.Button("Text Button", Variant(TextButton)),
+					tree.Button("Elevated Button", Variant(Elevated)),
+					tree.Button("With OnClick", OnClick(func() {
 						println("Button clicked!")
 					})),
-					Button("With Custom ID", ButtonID("custom-id-button")),
-					Button("Duplicate Label", ButtonID("button-1")),
-					Button("Duplicate Label", ButtonID("button-2")),
+					tree.Button("With Custom ID", ButtonID("custom-id-button")),
+					tree.Button("Duplicate Label", ButtonID("button-1")),
+					tree.Button("Duplicate Label", ButtonID("button-2")),
 				}),
 			)(gtx, &th)
 
