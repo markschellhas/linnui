@@ -109,7 +109,7 @@ func TestCrossAxisStretch(t *testing.T) {
 }
 
 func TestSpacingUsesFlexGap(t *testing.T) {
-	child := func(_ layout.Context, _ *Theme) layout.Dimensions {
+	var child Widget = func(_ layout.Context, _ *Theme) layout.Dimensions {
 		return layout.Dimensions{Size: image.Pt(10, 10)}
 	}
 	gtx := layout.Context{
