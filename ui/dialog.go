@@ -21,9 +21,11 @@ type DialogState struct {
 	mu          sync.RWMutex
 	visible     bool
 	invalidator Invalidator
-	scrim       [4]widget.Clickable
 	content     widget.Clickable
 	modalTag    struct{}
+	cardBounds  image.Rectangle
+	scrimID     pointer.ID
+	scrimDown   bool
 	tree        *Tree
 }
 
@@ -141,23 +143,47 @@ func Dialog(state *DialogState, opts ...DialogOption) Overlay {
 				}
 			}
 		}
-		for index := range state.scrim {
-			for state.scrim[index].Clicked(gtx) {
-				if model.dismissOnScrim {
-					state.Dismiss()
-				}
-			}
-		}
 		for state.content.Clicked(gtx) {
 			// Consume clicks on non-interactive dialog content so they cannot
 			// reach controls behind the modal.
 		}
 		for {
-			if _, ok := gtx.Event(pointer.Filter{
+			input, ok := gtx.Event(pointer.Filter{
 				Target: &state.modalTag,
-				Kinds:  pointer.Press | pointer.Release | pointer.Move | pointer.Drag | pointer.Scroll,
-			}); !ok {
+				Kinds:  pointer.Press | pointer.Release | pointer.Move | pointer.Drag | pointer.Scroll | pointer.Cancel,
+			})
+			if !ok {
 				break
+			}
+			event, ok := input.(pointer.Event)
+			if !ok {
+				continue
+			}
+			switch event.Kind {
+			case pointer.Press:
+				position := image.Pt(int(event.Position.X), int(event.Position.Y))
+				state.mu.Lock()
+				outside := !state.cardBounds.Contains(position)
+				if outside {
+					state.scrimDown = true
+					state.scrimID = event.PointerID
+				}
+				state.mu.Unlock()
+				if outside {
+					gtx.Execute(pointer.GrabCmd{Tag: &state.modalTag, ID: event.PointerID})
+				}
+			case pointer.Release:
+				state.mu.Lock()
+				dismiss := state.scrimDown && state.scrimID == event.PointerID
+				state.scrimDown = false
+				state.mu.Unlock()
+				if dismiss && model.dismissOnScrim {
+					state.Dismiss()
+				}
+			case pointer.Cancel:
+				state.mu.Lock()
+				state.scrimDown = false
+				state.mu.Unlock()
 			}
 		}
 
@@ -217,19 +243,9 @@ func Dialog(state *DialogState, opts ...DialogOption) Overlay {
 		paint.FillShape(gtx.Ops, scrim, clip.Rect(image.Rectangle{Max: fullSize}).Op())
 
 		cardBounds := image.Rectangle{Min: cardOffset, Max: cardOffset.Add(cardDimensions.Size)}
-		scrimRegions := dialogScrimRegions(fullSize, cardBounds)
-		for index, region := range scrimRegions {
-			if region.Empty() {
-				continue
-			}
-			regionContext := gtx
-			regionContext.Constraints = layout.Exact(region.Size())
-			offset := op.Offset(region.Min).Push(gtx.Ops)
-			state.scrim[index].Layout(regionContext, func(gtx layout.Context) layout.Dimensions {
-				return layout.Dimensions{Size: gtx.Constraints.Min}
-			})
-			offset.Pop()
-		}
+		state.mu.Lock()
+		state.cardBounds = cardBounds
+		state.mu.Unlock()
 
 		offset := op.Offset(cardOffset).Push(gtx.Ops)
 		contentContext := gtx
@@ -247,13 +263,4 @@ func Dialog(state *DialogState, opts ...DialogOption) Overlay {
 
 func dialogActionID(index int, label string) string {
 	return "dialog_action_" + strconv.Itoa(index) + "_" + label
-}
-
-func dialogScrimRegions(fullSize image.Point, card image.Rectangle) [4]image.Rectangle {
-	return [4]image.Rectangle{
-		image.Rect(0, 0, fullSize.X, card.Min.Y),
-		image.Rect(0, card.Max.Y, fullSize.X, fullSize.Y),
-		image.Rect(0, card.Min.Y, card.Min.X, card.Max.Y),
-		image.Rect(card.Max.X, card.Min.Y, fullSize.X, card.Max.Y),
-	}
 }
