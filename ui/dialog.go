@@ -20,6 +20,7 @@ type DialogState struct {
 	visible     bool
 	invalidator Invalidator
 	scrim       [4]widget.Clickable
+	content     widget.Clickable
 	tree        *Tree
 }
 
@@ -144,6 +145,10 @@ func Dialog(state *DialogState, opts ...DialogOption) Overlay {
 				}
 			}
 		}
+		for state.content.Clicked(gtx) {
+			// Consume clicks on non-interactive dialog content so they cannot
+			// reach controls behind the modal.
+		}
 
 		fullSize := gtx.Constraints.Max
 		margin := gtx.Dp(unit.Dp(32))
@@ -214,6 +219,11 @@ func Dialog(state *DialogState, opts ...DialogOption) Overlay {
 		}
 
 		offset := op.Offset(cardOffset).Push(gtx.Ops)
+		contentContext := gtx
+		contentContext.Constraints = layout.Exact(cardDimensions.Size)
+		state.content.Layout(contentContext, func(gtx layout.Context) layout.Dimensions {
+			return layout.Dimensions{Size: gtx.Constraints.Min}
+		})
 		cardCall.Add(gtx.Ops)
 		offset.Pop()
 		return layout.Dimensions{Size: fullSize}
