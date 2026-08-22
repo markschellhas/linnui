@@ -34,7 +34,7 @@ func run(w *app.Window) error {
 			gtx := app.NewContext(&ops, e)
 
 			Scaffold(
-				AppBar(TitleBar("LinnUI Simple")),
+				TopBar(AppBar("LinnUI Simple")),
 				Body(
 					Column([]any{
 						Text("Welcome to LinnUI", Style(H3)),

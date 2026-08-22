@@ -41,7 +41,7 @@ func run(w *app.Window, darkMode *State[bool]) error {
 			}
 
 			Scaffold(
-				AppBar(TitleBar("Semantic themes")),
+				TopBar(AppBar("Semantic themes")),
 				Body(Padding(
 					InsetsAll(24),
 					Column([]any{

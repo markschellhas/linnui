@@ -40,7 +40,7 @@ func run(w *app.Window, count *State[int], inputText *State[string]) error {
 			gtx := app.NewContext(&ops, e)
 
 			Scaffold(
-				AppBar(TitleBar("LinnUI State Management")),
+				TopBar(AppBar("LinnUI State Management")),
 				Body(
 					Column([]any{
 						// Text input section

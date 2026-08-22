@@ -25,7 +25,7 @@ if darkMode.Get() {
 }
 
 ui.Scaffold(
-	ui.AppBar(ui.TitleBar("My app")),
+	ui.TopBar(ui.AppBar("My app")),
 	ui.Body(ui.Container(
 		ui.Text("Theme-aware content"),
 		ui.SurfaceBackground(),
