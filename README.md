@@ -2,15 +2,33 @@
 
 # LinnUI
 
-**LinnUI** is a modern, pure-Go UI framework inspired by declaritive UI frameworks like Flutter, SwiftUI and Jetpack Compose, built on [Gio](https://gioui.org) for creating beautiful, reactive, cross-platform desktop, mobile, and web applications from a single codebase.
+**LinnUI** is a concise, declarative Go UI library built on
+[Gio](https://gioui.org). It provides polished defaults, reactive state, and
+familiar components without introducing HTML, CSS, or JavaScript.
 
 ## Features
 
-- **Flutter-like API**: Composable widgets (`Scaffold`, `Column`, `Row`, `Container`, etc.) with concise, declarative syntax.
-- **Reactive state**: Svelte-inspired stores that automatically update the UI on changes.
-- **Beautiful defaults**: Modern Material 3-inspired themes with light/dark mode and smooth animations.
-- **Pure Go**: No webviews, no cgo — tiny static binaries with GPU acceleration.
-- **True cross-platform**: Native desktop (Windows/macOS/Linux), mobile (via Gomobile), and WebAssembly.
+- **Small declarative API:** compose functions such as `Scaffold`, `Column`,
+  `Card`, and `Text`.
+- **Reactive state:** typed `State[T]` values invalidate one or more windows
+  automatically.
+- **Quality defaults:** semantic light/dark themes, accessible labels,
+  keyboard-ready Gio controls, disabled states, and 48dp interaction targets.
+- **Practical components:** buttons, text fields, checkboxes, switches, radio
+  groups, sliders, cards, app bars, dialogs, snackbars, scrolling, and images.
+- **Predictable state:** one `Tree` owns interaction state per window; scopes
+  prevent ID collisions and can be reset when a screen closes.
+- **Cross-platform foundation:** Gio targets desktop, mobile, and WebAssembly
+  from the same Go UI code.
+
+## Try the gallery
+
+```bash
+go run ./examples/gallery
+```
+
+The gallery demonstrates themes, typography, forms, cards, overlays, floating
+actions, and runtime state updates.
 
 ## Theming
 
@@ -34,7 +52,7 @@ ui.Scaffold(
 )(gtx, &th)
 ```
 
-See `examples/theme` for runtime light/dark switching and component samples.
+See `examples/theme` for a focused runtime theme-switching sample.
 
 ## Quick Example
 
@@ -42,45 +60,74 @@ See `examples/theme` for runtime light/dark switching and component samples.
 package main
 
 import (
+	"log"
+	"os"
+	"strconv"
+
 	"gioui.org/app"
-	ui "github.com/markschellhas/linnui/ui" 
+	"gioui.org/op"
+
+	ui "github.com/markschellhas/linnui/ui"
 )
 
 func main() {
-	// 👉 LinnUI reactive state for counter 
-	count := ui.NewState(0)
-
 	go func() {
 		w := new(app.Window)
-		w.Option(app.Title("LinnUI Counter"))
-		count.Bind(w) // enable auto-redraw
-
-		// UI loop...
-		app.Main()
+		tree := ui.NewTree(w)
+		defer tree.Close()
+		count := ui.NewState(0).Bind(w)
+		if err := run(w, tree, count); err != nil {
+			log.Print(err)
+		}
+		os.Exit(0)
 	}()
+	app.Main()
 }
-// UI loop:
-func run(w *app.Window) error {
+
+func run(w *app.Window, tree *ui.Tree, count *ui.State[int]) error {
 	var ops op.Ops
-	th := Light
+	theme := ui.Light
 
 	for {
-		switch e := w.Event().(type) {
+		switch event := w.Event().(type) {
 		case app.DestroyEvent:
-			return e.Err
+			return event.Err
 		case app.FrameEvent:
-			gtx := app.NewContext(&ops, e)
-      
-      // 👉 LinnUI Center & Text component
-			Center(Text("Oh, hi Mark"))(gtx, &th)
-      
-			e.Frame(gtx.Ops)
+			gtx := app.NewContext(&ops, event)
+			ui.Center(ui.Column([]any{
+				ui.Text("Count: "+strconv.Itoa(count.Get()), ui.Style(ui.H4)),
+				tree.Button("Increment",
+					ui.ButtonID("increment"),
+					ui.OnClick(func() { count.Update(func(n int) int { return n + 1 }) }),
+				),
+			}, ui.Spacing(16)))(gtx, &theme)
+			event.Frame(gtx.Ops)
 		}
 	}
 }
 ```
 
-(See `examples/counter` for the full reactive counter demo.)
+See `examples/state` for text binding and additional state patterns.
+
+## State and forms
+
+Create one `Tree` per window and use its constructors for interactive widgets.
+The package-level constructors remain available for small examples, while a
+Tree guarantees isolation across windows and screens.
+
+```go
+form := tree.Scope("profile")
+name := ui.NewState("").Bind(window)
+
+field := form.TextField(
+	ui.TextFieldID("name"),
+	ui.Hint("Name"),
+	ui.BindText(name),
+)
+```
+
+Call `form.Close()` when a temporary screen is permanently removed, or
+`form.Reset()` to discard its saved interaction state.
 
 ## Requirements
 
@@ -90,12 +137,23 @@ func run(w *app.Window) error {
 ## Installation
 
 ```bash
-go get github.com/markschellhas/linnui/ui@v0.3.1
+go get github.com/markschellhas/linnui/ui
 ```
 
 ## Why LinnUI?
 
-Go developers deserve modern, joyful UI tooling without compromises. LinnUI fills the gap between low-level Gio and bloated webview solutions.
+LinnUI fills the space between Gio's low-level primitives and browser-based
+desktop stacks. It intentionally favors a small, readable API over a large
+framework.
+
+## Accessibility
+
+LinnUI uses Gio's native semantic classes and focus behavior for buttons,
+editors, checkboxes, switches, and radio controls. Disabled components suppress
+input rather than only changing color. Gio v0.10 does not expose dialog,
+heading, live-region, or adjustable-range semantic roles, so dialogs,
+snackbars, and sliders use the best available labels and keyboard behavior
+without claiming unsupported screen-reader capabilities.
 
 ## Status
 

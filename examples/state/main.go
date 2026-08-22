@@ -19,8 +19,10 @@ func main() {
 		// Create reactive state - binds to window for auto-invalidation
 		count := NewState(0).Bind(w)
 		inputText := NewState("").Bind(w)
+		tree := NewTree(w)
+		defer tree.Close()
 
-		if err := run(w, count, inputText); err != nil {
+		if err := run(w, tree, count, inputText); err != nil {
 			log.Fatal(err)
 		}
 		os.Exit(0)
@@ -28,7 +30,7 @@ func main() {
 	app.Main()
 }
 
-func run(w *app.Window, count *State[int], inputText *State[string]) error {
+func run(w *app.Window, tree *Tree, count *State[int], inputText *State[string]) error {
 	var ops op.Ops
 	th := Light
 
@@ -46,12 +48,10 @@ func run(w *app.Window, count *State[int], inputText *State[string]) error {
 						// Text input section
 						Text("Type something:", Style(H5)),
 						SizedBox(Height(8)),
-						TextField(
+						tree.TextField(
 							TextFieldID("name_input"),
 							Hint("Enter your name..."),
-							OnChange(func(s string) {
-								inputText.Set(s)
-							}),
+							BindText(inputText),
 						),
 						SizedBox(Height(8)),
 						Text("You typed: "+inputText.Get(), Style(BodyText)),
@@ -64,20 +64,20 @@ func run(w *app.Window, count *State[int], inputText *State[string]) error {
 								Text("Count: "+strconv.Itoa(count.Get()), Style(H5)),
 								SizedBox(Height(32)),
 								Row([]any{
-									Button("- Decrement",
+									tree.Button("- Decrement",
 										ButtonID("decrement"),
 										OnClick(func() { count.Set(count.Get() - 1) }),
 										Variant(Outlined),
 									),
 									SizedBox(Width(16)),
-									Button("+ Increment",
+									tree.Button("+ Increment",
 										ButtonID("increment"),
 										OnClick(func() { count.Set(count.Get() + 1) }),
 										Variant(Filled),
 									),
 								}, RowSpacing(0)),
 								SizedBox(Height(16)),
-								Button("Reset",
+								tree.Button("Reset",
 									ButtonID("reset"),
 									OnClick(func() { count.Set(0) }),
 									Variant(TextButton),

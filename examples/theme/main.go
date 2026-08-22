@@ -15,8 +15,10 @@ func main() {
 		w := new(app.Window)
 		w.Option(app.Title("LinnUI Themes"))
 		darkMode := NewState(false).Bind(w)
+		tree := NewTree(w)
+		defer tree.Close()
 
-		if err := run(w, darkMode); err != nil {
+		if err := run(w, tree, darkMode); err != nil {
 			log.Fatal(err)
 		}
 		os.Exit(0)
@@ -24,7 +26,7 @@ func main() {
 	app.Main()
 }
 
-func run(w *app.Window, darkMode *State[bool]) error {
+func run(w *app.Window, tree *Tree, darkMode *State[bool]) error {
 	var ops op.Ops
 
 	for {
@@ -70,14 +72,14 @@ func run(w *app.Window, darkMode *State[bool]) error {
 								InsetsAll(20),
 								Column([]any{
 									Text("Surface card", Style(H5)),
-									TextField(
+									tree.TextField(
 										TextFieldID("theme_example_input"),
 										Hint("Theme-aware text field"),
 									),
 									Row([]any{
-										Button("Filled", Variant(Filled)),
-										Button("Outlined", Variant(Outlined)),
-										Button("Elevated", Variant(Elevated)),
+										tree.Button("Filled", Variant(Filled)),
+										tree.Button("Outlined", Variant(Outlined)),
+										tree.Button("Elevated", Variant(Elevated)),
 									}, RowSpacing(12)),
 								}, Spacing(16)),
 							),
@@ -86,7 +88,7 @@ func run(w *app.Window, darkMode *State[bool]) error {
 							BorderRadius(16),
 							Shadow(4),
 						),
-						Button(
+						tree.Button(
 							modeLabel,
 							ButtonID("toggle_theme"),
 							OnClick(func() { darkMode.Update(func(dark bool) bool { return !dark }) }),
