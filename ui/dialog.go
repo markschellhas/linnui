@@ -7,6 +7,7 @@ import (
 
 	"gioui.org/io/key"
 	"gioui.org/layout"
+	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
@@ -18,7 +19,7 @@ type DialogState struct {
 	mu          sync.RWMutex
 	visible     bool
 	invalidator Invalidator
-	scrim       widget.Clickable
+	scrim       [4]widget.Clickable
 	tree        *Tree
 }
 
@@ -136,70 +137,99 @@ func Dialog(state *DialogState, opts ...DialogOption) Overlay {
 				}
 			}
 		}
-		for state.scrim.Clicked(gtx) {
-			if model.dismissOnScrim {
-				state.Dismiss()
+		for index := range state.scrim {
+			for state.scrim[index].Clicked(gtx) {
+				if model.dismissOnScrim {
+					state.Dismiss()
+				}
 			}
 		}
 
-		return layout.Stack{}.Layout(gtx,
-			layout.Expanded(func(gtx layout.Context) layout.Dimensions {
-				return state.scrim.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					size := gtx.Constraints.Min
-					scrim := th.Palette.Shadow
-					scrim.A = 150
-					paint.FillShape(gtx.Ops, scrim, clip.Rect(image.Rectangle{Max: size}).Op())
-					return layout.Dimensions{Size: size}
-				})
-			}),
-			layout.Stacked(func(gtx layout.Context) layout.Dimensions {
-				return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					margin := gtx.Dp(unit.Dp(32))
-					width := min(gtx.Dp(unit.Dp(480)), max(0, gtx.Constraints.Max.X-margin))
-					gtx.Constraints.Min.X = width
-					gtx.Constraints.Max.X = width
-
-					children := make([]any, 0, 3)
-					if model.title != "" {
-						children = append(children, Text(model.title, Style(H5)))
-					}
-					if model.content != nil {
-						children = append(children, model.content)
-					}
-					if len(model.actions) > 0 {
-						actions := make([]any, 0, len(model.actions))
-						for index, action := range model.actions {
-							action := action
-							actions = append(actions, state.tree.Button(
-								action.Label,
-								ButtonID(dialogActionID(index, action.Label)),
-								Variant(action.Variant),
-								OnClick(func() {
-									if action.OnClick != nil {
-										action.OnClick()
-									}
-									if !action.KeepOpen {
-										state.Dismiss()
-									}
-								}),
-							))
+		fullSize := gtx.Constraints.Max
+		margin := gtx.Dp(unit.Dp(32))
+		width := min(gtx.Dp(unit.Dp(480)), max(0, fullSize.X-margin))
+		cardContext := gtx
+		cardContext.Constraints = layout.Constraints{
+			Min: image.Pt(width, 0),
+			Max: image.Pt(width, max(0, fullSize.Y-margin)),
+		}
+		recording := op.Record(gtx.Ops)
+		children := make([]any, 0, 3)
+		if model.title != "" {
+			children = append(children, Text(model.title, Style(H5)))
+		}
+		if model.content != nil {
+			children = append(children, model.content)
+		}
+		if len(model.actions) > 0 {
+			actions := make([]any, 0, len(model.actions))
+			for index, action := range model.actions {
+				action := action
+				actions = append(actions, state.tree.Button(
+					action.Label,
+					ButtonID(dialogActionID(index, action.Label)),
+					Variant(action.Variant),
+					OnClick(func() {
+						if action.OnClick != nil {
+							action.OnClick()
 						}
-						children = append(children, Row(actions, RowSpacing(8), RowMainAxis(MainAxisEnd)))
-					}
-					return state.tree.Card(
-						Column(children, Spacing(16)),
-						CardID("dialog"),
-						CardStyle(CardElevated),
-						CardPadding(InsetsAll(24)),
-						CardDescription(model.description),
-					)(gtx, th)
-				})
-			}),
+						if !action.KeepOpen {
+							state.Dismiss()
+						}
+					}),
+				))
+			}
+			children = append(children, Row(actions, RowSpacing(8), RowMainAxis(MainAxisEnd)))
+		}
+		cardDimensions := state.tree.Card(
+			Column(children, Spacing(16)),
+			CardID("dialog"),
+			CardStyle(CardElevated),
+			CardPadding(InsetsAll(24)),
+			CardDescription(model.description),
+		)(cardContext, th)
+		cardCall := recording.Stop()
+		cardOffset := image.Pt(
+			(fullSize.X-cardDimensions.Size.X)/2,
+			(fullSize.Y-cardDimensions.Size.Y)/2,
 		)
+
+		scrim := th.Palette.Shadow
+		scrim.A = 150
+		paint.FillShape(gtx.Ops, scrim, clip.Rect(image.Rectangle{Max: fullSize}).Op())
+
+		cardBounds := image.Rectangle{Min: cardOffset, Max: cardOffset.Add(cardDimensions.Size)}
+		scrimRegions := dialogScrimRegions(fullSize, cardBounds)
+		for index, region := range scrimRegions {
+			if region.Empty() {
+				continue
+			}
+			regionContext := gtx
+			regionContext.Constraints = layout.Exact(region.Size())
+			offset := op.Offset(region.Min).Push(gtx.Ops)
+			state.scrim[index].Layout(regionContext, func(gtx layout.Context) layout.Dimensions {
+				return layout.Dimensions{Size: gtx.Constraints.Min}
+			})
+			offset.Pop()
+		}
+
+		offset := op.Offset(cardOffset).Push(gtx.Ops)
+		cardCall.Add(gtx.Ops)
+		offset.Pop()
+		return layout.Dimensions{Size: fullSize}
 	}
 	return CustomOverlay(widget, OverlayVisible(state.Visible), OverlayModal())
 }
 
 func dialogActionID(index int, label string) string {
 	return "dialog_action_" + strconv.Itoa(index) + "_" + label
+}
+
+func dialogScrimRegions(fullSize image.Point, card image.Rectangle) [4]image.Rectangle {
+	return [4]image.Rectangle{
+		image.Rect(0, 0, fullSize.X, card.Min.Y),
+		image.Rect(0, card.Max.Y, fullSize.X, fullSize.Y),
+		image.Rect(0, card.Min.Y, card.Min.X, card.Max.Y),
+		image.Rect(card.Max.X, card.Min.Y, fullSize.X, card.Max.Y),
+	}
 }

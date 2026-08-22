@@ -80,3 +80,22 @@ func TestDialogAndSnackbarStateInvalidate(t *testing.T) {
 		t.Fatalf("total invalidations = %d, want 4", got)
 	}
 }
+
+func TestDialogScrimExcludesCardBounds(t *testing.T) {
+	card := image.Rect(100, 80, 300, 220)
+	regions := dialogScrimRegions(image.Pt(400, 300), card)
+
+	for index, region := range regions {
+		if region.Overlaps(card) {
+			t.Fatalf("scrim region %d %v overlaps card %v", index, region, card)
+		}
+	}
+	area := 0
+	for _, region := range regions {
+		area += region.Dx() * region.Dy()
+	}
+	want := 400*300 - card.Dx()*card.Dy()
+	if area != want {
+		t.Fatalf("scrim area = %d, want %d", area, want)
+	}
+}
