@@ -289,9 +289,9 @@ func (t *Tree) Slider(label string, value *State[float32], minValue, maxValue fl
 		style := material.Slider(th.Theme, control)
 		style.Axis = axis
 		style.Color = th.Palette.Primary
-		slider := func(gtx layout.Context) layout.Dimensions {
+		slider := Widget(func(gtx layout.Context, _ *Theme) layout.Dimensions {
 			return style.Layout(gtx)
-		}
+		})
 
 		textColor := th.Palette.OnSurface
 		if model.disabled {
@@ -303,7 +303,9 @@ func (t *Tree) Slider(label string, value *State[float32], minValue, maxValue fl
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return Text(label, TextColor(textColor))(gtx, th)
 				}),
-				layout.Flexed(1, slider),
+				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					return slider(gtx, th)
+				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return Text(model.valueText(current), TextColor(textColor))(gtx, th)
 				}),

@@ -108,6 +108,26 @@ func TestCrossAxisStretch(t *testing.T) {
 	}
 }
 
+func TestCrossAxisStretchIgnoresUnboundedAxis(t *testing.T) {
+	var child Widget = func(gtx layout.Context, _ *Theme) layout.Dimensions {
+		if got := gtx.Constraints.Min.Y; got != 0 {
+			t.Fatalf("unbounded cross-axis minimum = %d, want 0", got)
+		}
+		return layout.Dimensions{Size: image.Pt(10, 10)}
+	}
+	gtx := layout.Context{
+		Ops: new(op.Ops),
+		Constraints: layout.Constraints{
+			Max: image.Pt(100, unboundedLayoutConstraint),
+		},
+		Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1},
+	}
+
+	if got := Row([]any{child}, RowCrossAxis(CrossAxisStretch))(gtx, &Light).Size.Y; got != 10 {
+		t.Fatalf("row height = %d, want natural height 10", got)
+	}
+}
+
 func TestSpacingUsesFlexGap(t *testing.T) {
 	var child Widget = func(_ layout.Context, _ *Theme) layout.Dimensions {
 		return layout.Dimensions{Size: image.Pt(10, 10)}

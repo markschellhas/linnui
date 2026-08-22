@@ -1,8 +1,11 @@
 package ui
 
 import (
+	"image"
 	"math"
 	"testing"
+
+	"gioui.org/layout"
 )
 
 func TestSliderValue(t *testing.T) {
@@ -47,6 +50,18 @@ func TestSliderRejectsInvalidRange(t *testing.T) {
 			}()
 			Slider("Value", NewState(float32(0)), tt.min, tt.max)
 		})
+	}
+}
+
+func TestSliderIncludesInteractiveTrack(t *testing.T) {
+	tree := NewTree(nil)
+	defer tree.Close()
+	gtx := testContext(300, 100)
+	gtx.Constraints = layout.Constraints{Max: image.Pt(300, 100)}
+
+	dims := tree.Slider("Volume", NewState(float32(50)), 0, 100)(gtx, &Light)
+	if dims.Size.Y < 48 {
+		t.Fatalf("slider height = %d, want an interactive track and label", dims.Size.Y)
 	}
 }
 

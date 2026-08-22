@@ -2,6 +2,9 @@ package ui
 
 import "gioui.org/layout"
 
+// Gio uses one million pixels as the main-axis constraint for list children.
+const unboundedLayoutConstraint = 1_000_000
+
 func mainAxisSpacing(align MainAxisAlignment) layout.Spacing {
 	switch align {
 	case MainAxisCenter:
@@ -39,9 +42,13 @@ func alignWidget(widget Widget, axis layout.Axis, align CrossAxisAlignment) Widg
 
 	return func(gtx layout.Context, th *Theme) layout.Dimensions {
 		if axis == layout.Horizontal {
-			gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
+			if gtx.Constraints.Max.Y < unboundedLayoutConstraint {
+				gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
+			}
 		} else {
-			gtx.Constraints.Min.X = gtx.Constraints.Max.X
+			if gtx.Constraints.Max.X < unboundedLayoutConstraint {
+				gtx.Constraints.Min.X = gtx.Constraints.Max.X
+			}
 		}
 		return widget(gtx, th)
 	}
