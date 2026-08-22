@@ -163,7 +163,7 @@ func Dialog(state *DialogState, opts ...DialogOption) Overlay {
 			case pointer.Press:
 				position := image.Pt(int(event.Position.X), int(event.Position.Y))
 				state.mu.Lock()
-				outside := !state.cardBounds.Contains(position)
+				outside := !position.In(state.cardBounds)
 				if outside {
 					state.scrimDown = true
 					state.scrimID = event.PointerID
