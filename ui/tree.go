@@ -28,9 +28,10 @@ type widgetKey struct {
 }
 
 type treeStore struct {
-	mu      sync.Mutex
-	entries map[widgetKey]any
-	closed  bool
+	mu          sync.Mutex
+	entries     map[widgetKey]any
+	invalidator Invalidator
+	closed      bool
 }
 
 // Tree owns the persistent interaction state for one UI tree or window.
@@ -43,10 +44,13 @@ type Tree struct {
 }
 
 // NewTree creates an isolated widget-state tree.
-func NewTree(_ Invalidator) *Tree {
+func NewTree(invalidator Invalidator) *Tree {
 	return &Tree{
-		store: &treeStore{entries: make(map[widgetKey]any)},
-		root:  true,
+		store: &treeStore{
+			entries:     make(map[widgetKey]any),
+			invalidator: invalidator,
+		},
+		root: true,
 	}
 }
 
@@ -166,8 +170,13 @@ func (t *Tree) enum(id string) *widget.Enum {
 	return t.state(radioWidget, id, func() any { return new(widget.Enum) }).(*widget.Enum)
 }
 
-func (t *Tree) float(id string) *widget.Float {
-	return t.state(sliderWidget, id, func() any { return new(widget.Float) }).(*widget.Float)
+type sliderState struct {
+	value widget.Float
+	tag   struct{}
+}
+
+func (t *Tree) slider(id string) *sliderState {
+	return t.state(sliderWidget, id, func() any { return new(sliderState) }).(*sliderState)
 }
 
 // TextFieldValue returns the latest laid-out value for a text field.
@@ -190,15 +199,20 @@ func (t *Tree) SetTextFieldValue(id, text string) bool {
 	t.ensureOpen()
 	key := widgetKey{kind: textFieldWidget, scope: t.scope, id: id}
 	t.store.mu.Lock()
-	defer t.store.mu.Unlock()
 	state, ok := t.store.entries[key].(*textFieldState)
 	if !ok {
+		t.store.mu.Unlock()
 		return false
 	}
+	invalidator := t.store.invalidator
 	state.mu.Lock()
-	defer state.mu.Unlock()
 	state.pending = &text
 	state.snapshot = text
+	state.mu.Unlock()
+	t.store.mu.Unlock()
+	if invalidator != nil {
+		invalidator.Invalidate()
+	}
 	return true
 }
 

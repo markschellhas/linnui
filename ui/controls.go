@@ -2,9 +2,16 @@ package ui
 
 import (
 	"fmt"
+	"image"
 	"math"
 
+	"gioui.org/io/event"
+	"gioui.org/io/key"
+	"gioui.org/io/semantic"
 	"gioui.org/layout"
+	"gioui.org/op"
+	"gioui.org/op/clip"
+	"gioui.org/op/paint"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
 )
@@ -269,7 +276,8 @@ func (t *Tree) Slider(label string, value *State[float32], minValue, maxValue fl
 	if model.step < 0 || !finite(model.step) {
 		panic("ui: Slider step must be finite and non-negative")
 	}
-	control := t.float(model.id)
+	sliderState := t.slider(model.id)
+	control := &sliderState.value
 
 	return func(gtx layout.Context, th *Theme) layout.Dimensions {
 		current := sliderValue(value.Get(), minValue, maxValue, model.step)
@@ -277,6 +285,9 @@ func (t *Tree) Slider(label string, value *State[float32], minValue, maxValue fl
 		before := control.Value
 		if model.disabled {
 			gtx = gtx.Disabled()
+		} else if keyboardValue, changed := sliderKeyboardValue(gtx, sliderState, current, minValue, maxValue, model.step); changed {
+			current = keyboardValue
+			control.Value = (current - minValue) / (maxValue - minValue)
 		}
 
 		axis := layout.Horizontal
@@ -290,7 +301,23 @@ func (t *Tree) Slider(label string, value *State[float32], minValue, maxValue fl
 		style.Axis = axis
 		style.Color = th.Palette.Primary
 		slider := Widget(func(gtx layout.Context, _ *Theme) layout.Dimensions {
-			return style.Layout(gtx)
+			recording := op.Record(gtx.Ops)
+			dims := style.Layout(gtx)
+			call := recording.Stop()
+			bounds := clip.Rect{Max: dims.Size}.Push(gtx.Ops)
+			event.Op(gtx.Ops, &sliderState.tag)
+			semantic.DescriptionOp(label + ", " + model.valueText(current)).Add(gtx.Ops)
+			if gtx.Focused(&sliderState.tag) {
+				outline := clip.Stroke{
+					Path:  clip.UniformRRect(image.Rectangle{Max: dims.Size}, gtx.Dp(unit.Dp(4))).Path(gtx.Ops),
+					Width: float32(gtx.Dp(unit.Dp(2))),
+				}.Op().Push(gtx.Ops)
+				paint.Fill(gtx.Ops, th.Palette.Primary)
+				outline.Pop()
+			}
+			call.Add(gtx.Ops)
+			bounds.Pop()
+			return dims
 		})
 
 		textColor := th.Palette.OnSurface
@@ -339,6 +366,48 @@ func sliderValue(value, minValue, maxValue, step float32) float32 {
 		value = max(minValue, min(value, maxValue))
 	}
 	return value
+}
+
+func sliderKeyboardValue(
+	gtx layout.Context,
+	state *sliderState,
+	current, minValue, maxValue, step float32,
+) (float32, bool) {
+	keyStep := step
+	if keyStep <= 0 {
+		keyStep = (maxValue - minValue) / 100
+	}
+	next := current
+	for {
+		input, ok := gtx.Event(
+			key.FocusFilter{Target: &state.tag},
+			key.Filter{Focus: &state.tag, Name: key.NameLeftArrow},
+			key.Filter{Focus: &state.tag, Name: key.NameDownArrow},
+			key.Filter{Focus: &state.tag, Name: key.NameRightArrow},
+			key.Filter{Focus: &state.tag, Name: key.NameUpArrow},
+			key.Filter{Focus: &state.tag, Name: key.NameHome},
+			key.Filter{Focus: &state.tag, Name: key.NameEnd},
+		)
+		if !ok {
+			break
+		}
+		keyEvent, ok := input.(key.Event)
+		if !ok || keyEvent.State != key.Press {
+			continue
+		}
+		switch keyEvent.Name {
+		case key.NameLeftArrow, key.NameDownArrow:
+			next -= keyStep
+		case key.NameRightArrow, key.NameUpArrow:
+			next += keyStep
+		case key.NameHome:
+			next = minValue
+		case key.NameEnd:
+			next = maxValue
+		}
+	}
+	next = sliderValue(next, minValue, maxValue, step)
+	return next, next != current
 }
 
 func finite(value float32) bool {

@@ -50,7 +50,8 @@ func TestTreeResetAndDelete(t *testing.T) {
 }
 
 func TestTreeTextFieldAccessors(t *testing.T) {
-	tree := NewTree(nil)
+	invalidator := new(testInvalidator)
+	tree := NewTree(invalidator)
 	defer tree.Close()
 	tree.textField("name")
 
@@ -59,6 +60,9 @@ func TestTreeTextFieldAccessors(t *testing.T) {
 	}
 	if got, ok := tree.TextFieldValue("name"); !ok || got != "Lin" {
 		t.Fatalf("TextFieldValue = %q, %v; want Lin, true", got, ok)
+	}
+	if got := invalidator.count.Load(); got != 1 {
+		t.Fatalf("programmatic field invalidations = %d, want 1", got)
 	}
 	if tree.SetTextFieldValue("missing", "value") {
 		t.Fatal("SetTextFieldValue unexpectedly found missing field")
