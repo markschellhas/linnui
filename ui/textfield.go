@@ -2,7 +2,6 @@ package ui
 
 import (
 	"image"
-	"sync"
 
 	"gioui.org/layout"
 	"gioui.org/op/clip"
@@ -11,26 +10,6 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 )
-
-// editorRegistry stores editor state by ID
-var (
-	editorRegistry = make(map[string]*widget.Editor)
-	editorMu       sync.Mutex
-)
-
-// getEditor returns a persistent editor for the given ID
-func getEditor(id string) *widget.Editor {
-	editorMu.Lock()
-	defer editorMu.Unlock()
-
-	if e, ok := editorRegistry[id]; ok {
-		return e
-	}
-	e := new(widget.Editor)
-	e.SingleLine = true
-	editorRegistry[id] = e
-	return e
-}
 
 // TextFieldOption configures the TextField
 type TextFieldOption func(*textFieldModel)
@@ -55,46 +34,107 @@ func MultiLine() TextFieldOption {
 	return func(t *textFieldModel) { t.multiLine = true }
 }
 
+// BindText binds the field bidirectionally to reactive state.
+func BindText(value *State[string]) TextFieldOption {
+	return func(t *textFieldModel) { t.value = value }
+}
+
+// TextFieldDisabled controls whether the field can receive input.
+func TextFieldDisabled(disabled bool) TextFieldOption {
+	return func(t *textFieldModel) { t.disabled = disabled }
+}
+
 // textFieldModel holds text field configuration (internal)
 type textFieldModel struct {
 	id        string
 	hint      string
 	onChange  func(string)
 	multiLine bool
+	value     *State[string]
+	disabled  bool
 }
 
 // TextField creates a text input widget
 // Usage: TextField(Hint("Enter name"), OnChange(func(s string) { ... }))
 func TextField(opts ...TextFieldOption) Widget {
-	t := &textFieldModel{
+	return legacyTree.TextField(opts...)
+}
+
+// TextField creates a text input whose editor state belongs to the Tree.
+func (tree *Tree) TextField(opts ...TextFieldOption) Widget {
+	model := &textFieldModel{
 		id:   "textfield_default",
 		hint: "",
 	}
 	for _, opt := range opts {
-		opt(t)
+		opt(model)
 	}
 
 	// Get persistent editor using the ID
-	editor := getEditor(t.id)
-	editor.SingleLine = !t.multiLine
-	onChange := t.onChange // Capture the handler
+	fieldState := tree.textField(model.id)
+	editor := &fieldState.editor
+	editor.SingleLine = !model.multiLine
+	onChange := model.onChange
 
 	return func(gtx layout.Context, th *Theme) layout.Dimensions {
+		if model.disabled {
+			gtx = gtx.Disabled()
+		}
+
 		// Check for text changes
+		changed := false
 		for {
 			event, ok := editor.Update(gtx)
 			if !ok {
 				break
 			}
 			if _, ok := event.(widget.ChangeEvent); ok {
-				if onChange != nil {
-					onChange(editor.Text())
+				changed = true
+			}
+		}
+
+		if changed {
+			value := editor.Text()
+			if model.value != nil {
+				model.value.Set(value)
+			}
+			if onChange != nil {
+				onChange(value)
+			}
+		} else {
+			fieldState.mu.Lock()
+			pending := fieldState.pending
+			fieldState.pending = nil
+			fieldState.mu.Unlock()
+
+			target := ""
+			syncValue := false
+			if pending != nil {
+				target = *pending
+				syncValue = true
+				if model.value != nil {
+					model.value.Set(target)
+				}
+			} else if model.value != nil {
+				target = model.value.Get()
+				syncValue = target != editor.Text()
+			}
+			if syncValue && target != editor.Text() {
+				editor.SetText(target)
+				for {
+					if _, ok := editor.Update(gtx); !ok {
+						break
+					}
 				}
 			}
 		}
 
+		fieldState.mu.Lock()
+		fieldState.snapshot = editor.Text()
+		fieldState.mu.Unlock()
+
 		// Style the text field
-		ed := material.Editor(th.Theme, editor, t.hint)
+		ed := material.Editor(th.Theme, editor, model.hint)
 		ed.TextSize = unit.Sp(16)
 		ed.Color = th.Palette.OnSurface
 		ed.HintColor = th.Palette.OnSurfaceVariant
@@ -127,21 +167,14 @@ func TextField(opts ...TextFieldOption) Widget {
 
 // TextFieldValue gets the current text value for a TextField by ID
 func TextFieldValue(id string) string {
-	editorMu.Lock()
-	defer editorMu.Unlock()
-
-	if e, ok := editorRegistry[id]; ok {
-		return e.Text()
+	value, ok := legacyTree.TextFieldValue(id)
+	if ok {
+		return value
 	}
 	return ""
 }
 
 // SetTextFieldValue sets the text value for a TextField by ID
 func SetTextFieldValue(id string, text string) {
-	editorMu.Lock()
-	defer editorMu.Unlock()
-
-	if e, ok := editorRegistry[id]; ok {
-		e.SetText(text)
-	}
+	legacyTree.SetTextFieldValue(id, text)
 }

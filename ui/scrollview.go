@@ -1,10 +1,7 @@
 package ui
 
 import (
-	"sync"
-
 	"gioui.org/layout"
-	"gioui.org/widget"
 	"gioui.org/widget/material"
 )
 
@@ -39,28 +36,14 @@ type scrollViewModel struct {
 	child     Widget
 }
 
-// scrollRegistry stores list state by ID
-var (
-	scrollRegistry = make(map[string]*widget.List)
-	scrollMu       sync.Mutex
-)
-
-// getList returns a persistent list for the given ID
-func getList(id string) *widget.List {
-	scrollMu.Lock()
-	defer scrollMu.Unlock()
-
-	if l, ok := scrollRegistry[id]; ok {
-		return l
-	}
-	l := new(widget.List)
-	scrollRegistry[id] = l
-	return l
-}
-
 // ScrollView creates a scrollable container for a single child
 // Usage: ScrollView(child, Direction(ScrollVertical))
 func ScrollView(child Widget, opts ...ScrollViewOption) Widget {
+	return legacyTree.ScrollView(child, opts...)
+}
+
+// ScrollView creates a scrollable container whose state belongs to the Tree.
+func (t *Tree) ScrollView(child Widget, opts ...ScrollViewOption) Widget {
 	s := &scrollViewModel{
 		id:        "default-scroll", // Default ID
 		direction: ScrollVertical,   // sensible default
@@ -71,7 +54,7 @@ func ScrollView(child Widget, opts ...ScrollViewOption) Widget {
 	}
 
 	// Get persistent list state
-	list := getList(s.id)
+	list := t.list(scrollViewWidget, s.id)
 
 	// Set the axis based on direction
 	if s.direction == ScrollHorizontal {
@@ -96,6 +79,11 @@ func ScrollView(child Widget, opts ...ScrollViewOption) Widget {
 // Unlike ScrollView which wraps a single child, ListView is optimized for many items
 // Usage: ListView([]Widget{item1, item2, ...}, Direction(ScrollVertical))
 func ListView(children []Widget, opts ...ScrollViewOption) Widget {
+	return legacyTree.ListView(children, opts...)
+}
+
+// ListView creates an efficient list whose state belongs to the Tree.
+func (t *Tree) ListView(children []Widget, opts ...ScrollViewOption) Widget {
 	s := &scrollViewModel{
 		id:        "default-listview",
 		direction: ScrollVertical,
@@ -105,7 +93,7 @@ func ListView(children []Widget, opts ...ScrollViewOption) Widget {
 	}
 
 	// Get persistent list state
-	list := getList(s.id)
+	list := t.list(listViewWidget, s.id)
 
 	// Set the axis based on direction
 	if s.direction == ScrollHorizontal {
