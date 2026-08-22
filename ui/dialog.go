@@ -5,7 +5,9 @@ import (
 	"strconv"
 	"sync"
 
+	"gioui.org/io/event"
 	"gioui.org/io/key"
+	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -21,6 +23,7 @@ type DialogState struct {
 	invalidator Invalidator
 	scrim       [4]widget.Clickable
 	content     widget.Clickable
+	modalTag    struct{}
 	tree        *Tree
 }
 
@@ -149,8 +152,18 @@ func Dialog(state *DialogState, opts ...DialogOption) Overlay {
 			// Consume clicks on non-interactive dialog content so they cannot
 			// reach controls behind the modal.
 		}
+		for {
+			if _, ok := gtx.Event(pointer.Filter{
+				Target: &state.modalTag,
+				Kinds:  pointer.Press | pointer.Release | pointer.Move | pointer.Drag | pointer.Scroll,
+			}); !ok {
+				break
+			}
+		}
 
 		fullSize := gtx.Constraints.Max
+		modalBounds := clip.Rect(image.Rectangle{Max: fullSize}).Push(gtx.Ops)
+		event.Op(gtx.Ops, &state.modalTag)
 		margin := gtx.Dp(unit.Dp(32))
 		width := min(gtx.Dp(unit.Dp(480)), max(0, fullSize.X-margin))
 		cardContext := gtx
@@ -226,6 +239,7 @@ func Dialog(state *DialogState, opts ...DialogOption) Overlay {
 		})
 		cardCall.Add(gtx.Ops)
 		offset.Pop()
+		modalBounds.Pop()
 		return layout.Dimensions{Size: fullSize}
 	}
 	return CustomOverlay(widget, OverlayVisible(state.Visible), OverlayModal())
