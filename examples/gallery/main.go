@@ -166,7 +166,7 @@ func run(window *app.Window, tree *Tree, state *galleryState) error {
 									CardID("outlined_card"),
 									CardStyle(CardOutlined),
 								)),
-							}, RowSpacing(16), RowCrossAxis(CrossAxisStretch)),
+							}, RowSpacing(16)),
 							section("Feedback", Row([]any{
 								tree.Button(
 									"Open dialog",

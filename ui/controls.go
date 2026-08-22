@@ -7,6 +7,7 @@ import (
 
 	"gioui.org/io/event"
 	"gioui.org/io/key"
+	"gioui.org/io/pointer"
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -381,6 +382,7 @@ func sliderKeyboardValue(
 	for {
 		input, ok := gtx.Event(
 			key.FocusFilter{Target: &state.tag},
+			pointer.Filter{Target: &state.tag, Kinds: pointer.Press},
 			key.Filter{Focus: &state.tag, Name: key.NameLeftArrow},
 			key.Filter{Focus: &state.tag, Name: key.NameDownArrow},
 			key.Filter{Focus: &state.tag, Name: key.NameRightArrow},
@@ -390,6 +392,10 @@ func sliderKeyboardValue(
 		)
 		if !ok {
 			break
+		}
+		if _, ok := input.(pointer.Event); ok {
+			gtx.Execute(key.FocusCmd{Tag: &state.tag})
+			continue
 		}
 		keyEvent, ok := input.(key.Event)
 		if !ok || keyEvent.State != key.Press {
