@@ -1,9 +1,12 @@
 package ui
 
 import (
+	"image"
 	"sync"
 
 	"gioui.org/layout"
+	"gioui.org/op/clip"
+	"gioui.org/op/paint"
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
@@ -93,15 +96,31 @@ func TextField(opts ...TextFieldOption) Widget {
 		// Style the text field
 		ed := material.Editor(th.Theme, editor, t.hint)
 		ed.TextSize = unit.Sp(16)
+		ed.Color = th.Palette.OnSurface
+		ed.HintColor = th.Palette.OnSurfaceVariant
+		ed.SelectionColor = th.Palette.PrimaryContainer
 
-		// Wrap in a bordered container
-		return layout.Background{}.Layout(gtx,
-			func(gtx layout.Context) layout.Dimensions {
-				return layout.Dimensions{Size: gtx.Constraints.Min}
-			},
-			func(gtx layout.Context) layout.Dimensions {
+		return layout.Stack{}.Layout(gtx,
+			layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+				size := gtx.Constraints.Min
+				rect := image.Rectangle{Max: size}
+				radius := gtx.Dp(unit.Dp(12))
+
+				background := clip.UniformRRect(rect, radius).Push(gtx.Ops)
+				paint.Fill(gtx.Ops, th.Palette.SurfaceVariant)
+				background.Pop()
+
+				outline := clip.Stroke{
+					Path:  clip.UniformRRect(rect, radius).Path(gtx.Ops),
+					Width: float32(gtx.Dp(unit.Dp(1))),
+				}.Op().Push(gtx.Ops)
+				paint.Fill(gtx.Ops, th.Palette.Outline)
+				outline.Pop()
+				return layout.Dimensions{Size: size}
+			}),
+			layout.Stacked(func(gtx layout.Context) layout.Dimensions {
 				return layout.UniformInset(unit.Dp(12)).Layout(gtx, ed.Layout)
-			},
+			}),
 		)
 	}
 }

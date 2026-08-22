@@ -12,6 +12,30 @@
 - **Pure Go**: No webviews, no cgo — tiny static binaries with GPU acceleration.
 - **True cross-platform**: Native desktop (Windows/macOS/Linux), mobile (via Gomobile), and WebAssembly.
 
+## Theming
+
+LinnUI provides light and dark themes with semantic colors for primary actions,
+containers, backgrounds, surfaces, text, errors, outlines, shadows, and disabled
+states. Core components consume these roles automatically.
+
+```go
+th := ui.Light
+if darkMode.Get() {
+	th = ui.Dark
+}
+
+ui.Scaffold(
+	ui.AppBar(ui.TitleBar("My app")),
+	ui.Body(ui.Container(
+		ui.Text("Theme-aware content"),
+		ui.SurfaceBackground(),
+		ui.OutlineBorder(1),
+	)),
+)(gtx, &th)
+```
+
+See `examples/theme` for runtime light/dark switching and component samples.
+
 ## Quick Example
 
 ```go

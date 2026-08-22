@@ -1,10 +1,12 @@
 package ui
 
 import (
+	"image"
+
 	"gioui.org/layout"
+	"gioui.org/op/clip"
+	"gioui.org/op/paint"
 	"gioui.org/unit"
-	"gioui.org/widget"
-	"gioui.org/widget/material"
 )
 
 // ScaffoldOption configures the Scaffold
@@ -40,30 +42,39 @@ func Scaffold(opts ...ScaffoldOption) Widget {
 	}
 
 	return func(gtx layout.Context, th *Theme) layout.Dimensions {
-		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				if s.appBar != nil {
-					return s.appBar(gtx, th)
-				}
-				return layout.Dimensions{}
+		return layout.Stack{}.Layout(gtx,
+			layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+				size := gtx.Constraints.Min
+				paint.FillShape(gtx.Ops, th.Palette.Background, clip.Rect(image.Rectangle{Max: size}).Op())
+				return layout.Dimensions{Size: size}
 			}),
-			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				if s.body != nil {
-					return layout.Inset{Left: 0, Right: 0, Top: 0, Bottom: unit.Dp(80)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return s.body(gtx, th)
-					})
-				}
-				return layout.Dimensions{}
-			}),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				if s.fab != nil {
-					return layout.SE.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return layout.Inset{Right: unit.Dp(16), Bottom: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return s.fab(gtx, th)
-						})
-					})
-				}
-				return layout.Dimensions{}
+			layout.Stacked(func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						if s.appBar != nil {
+							return s.appBar(gtx, th)
+						}
+						return layout.Dimensions{}
+					}),
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						if s.body != nil {
+							return layout.Inset{Left: 0, Right: 0, Top: 0, Bottom: unit.Dp(80)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return s.body(gtx, th)
+							})
+						}
+						return layout.Dimensions{}
+					}),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						if s.fab != nil {
+							return layout.SE.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return layout.Inset{Right: unit.Dp(16), Bottom: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									return s.fab(gtx, th)
+								})
+							})
+						}
+						return layout.Dimensions{}
+					}),
+				)
 			}),
 		)
 	}
@@ -72,8 +83,12 @@ func Scaffold(opts ...ScaffoldOption) Widget {
 // TitleBar creates a simple title bar widget
 func TitleBar(title string) Widget {
 	return func(gtx layout.Context, th *Theme) layout.Dimensions {
-		return material.List(th.Theme, new(widget.List)).Layout(gtx, 1, func(gtx layout.Context, _ int) layout.Dimensions {
-			return layout.UniformInset(unit.Dp(16)).Layout(gtx, material.H6(th.Theme, title).Layout)
-		})
+		return Container(
+			Padding(
+				InsetsAll(16),
+				Text(title, Style(H6), TextColor(th.Palette.OnPrimaryContainer)),
+			),
+			PrimaryContainerBackground(),
+		)(gtx, th)
 	}
 }

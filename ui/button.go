@@ -2,7 +2,6 @@ package ui
 
 import (
 	"image"
-	"image/color"
 	"sync"
 
 	"gioui.org/layout"
@@ -102,7 +101,7 @@ func Button(label string, opts ...ButtonOption) Widget {
 			mat.Color = th.Palette.OnPrimary
 			mat.CornerRadius = unit.Dp(12)
 		case Outlined:
-			mat.Background = color.NRGBA{A: 0} // Transparent
+			mat.Background = Transparent
 			mat.Color = th.Palette.Primary
 			mat.CornerRadius = unit.Dp(12)
 			// Draw button first, then add outline
@@ -121,19 +120,19 @@ func Button(label string, opts ...ButtonOption) Widget {
 						Path:  clip.UniformRRect(rect, radius).Path(gtx.Ops),
 						Width: float32(borderWidth),
 					}.Op().Push(gtx.Ops)
-					paint.Fill(gtx.Ops, th.Palette.Primary)
+					paint.Fill(gtx.Ops, th.Palette.Outline)
 					outline.Pop()
 
 					return layout.Dimensions{Size: size}
 				}),
 			)
 		case TextButton:
-			mat.Background = color.NRGBA{A: 0} // Transparent
+			mat.Background = Transparent
 			mat.Color = th.Palette.Primary
 			mat.CornerRadius = unit.Dp(12)
 		case Elevated:
 			mat.Background = th.Palette.SurfaceVariant
-			mat.Color = th.Palette.Primary
+			mat.Color = th.Palette.OnSurface
 			mat.CornerRadius = unit.Dp(12)
 		}
 
