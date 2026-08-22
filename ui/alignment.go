@@ -2,8 +2,12 @@ package ui
 
 import "gioui.org/layout"
 
-// Gio uses one million pixels as the main-axis constraint for list children.
-const unboundedLayoutConstraint = 1_000_000
+// Gio starts list children with roughly one million pixels of main-axis room;
+// preceding siblings can reduce that sentinel before a nested Flex sees it.
+const (
+	unboundedLayoutConstraint = 1_000_000
+	unboundedAxisThreshold    = unboundedLayoutConstraint / 2
+)
 
 func mainAxisSpacing(align MainAxisAlignment) layout.Spacing {
 	switch align {
@@ -42,11 +46,11 @@ func alignWidget(widget Widget, axis layout.Axis, align CrossAxisAlignment) Widg
 
 	return func(gtx layout.Context, th *Theme) layout.Dimensions {
 		if axis == layout.Horizontal {
-			if gtx.Constraints.Max.Y < unboundedLayoutConstraint {
+			if gtx.Constraints.Max.Y < unboundedAxisThreshold {
 				gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
 			}
 		} else {
-			if gtx.Constraints.Max.X < unboundedLayoutConstraint {
+			if gtx.Constraints.Max.X < unboundedAxisThreshold {
 				gtx.Constraints.Min.X = gtx.Constraints.Max.X
 			}
 		}
