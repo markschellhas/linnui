@@ -157,7 +157,7 @@ without claiming unsupported screen-reader capabilities.
 
 ## Status
 
-Early development (v0.3.1) — API subject to change. Contributions welcome!
+Early development (v0.4.0) — API subject to change. Contributions welcome!
 
 See [CHANGELOG.md](CHANGELOG.md) for release history.
 
