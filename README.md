@@ -134,7 +134,21 @@ Call `form.Close()` when a temporary screen is permanently removed, or
 ## Requirements
 
 - **Go 1.26+** (see `go.mod`)
-- Linux desktop builds also need Gio system libraries (e.g. `libxkbcommon-dev`, `libwayland-dev`, `libvulkan-dev`, `libegl1-mesa-dev`)
+- Linux desktop builds need Gio system libraries. On Debian/Ubuntu:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y \
+  libegl1-mesa-dev \
+  libvulkan-dev \
+  libwayland-dev \
+  libx11-dev \
+  libx11-xcb-dev \
+  libxkbcommon-dev \
+  libxkbcommon-x11-dev \
+  libxcursor-dev \
+  libxfixes-dev
+```
 
 ## Installation
 
