@@ -34,7 +34,9 @@ actions, and runtime state updates.
 
 LinnUI provides light and dark themes with semantic colors for primary actions,
 containers, backgrounds, surfaces, text, errors, outlines, shadows, and disabled
-states. Core components consume these roles automatically.
+states. The defaults follow [shadcn Neutral](https://ui.shadcn.com/docs/theming)
+(near-black primary actions, zinc-like surfaces). Core components consume these
+roles automatically.
 
 ```go
 th := ui.Light
