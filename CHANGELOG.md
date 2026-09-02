@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Default light and dark themes now use [shadcn](https://ui.shadcn.com/docs/theming) Neutral colors instead of Material You purple
+- Named swatches (`Gray*`, `Red`, `Blue`, and other accents) now follow the Tailwind Neutral / 500 scales
+
 ## [0.4.0] - 2026-08-23
 
 ### Added
